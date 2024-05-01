@@ -107,9 +107,7 @@ class ProjectService
     public function increaseHitCount(Project $project): void
     {
         try {
-            //TODO
-            $project->incrementHits();
-            $this->projectRepository->save($project);
+            $this->projectRepository->incrementHitCount($project);
         } catch (Exception $exception) {
             $this->logger->error(sprintf("[SERVICE] Increase Hit fail: %s", $exception->getMessage()));
             throw new Exception('Error increasing hit counter');

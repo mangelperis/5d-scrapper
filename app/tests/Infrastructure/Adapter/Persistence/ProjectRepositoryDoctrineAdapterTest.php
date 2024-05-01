@@ -55,5 +55,16 @@ class ProjectRepositoryDoctrineAdapterTest extends TestCase
         $this->assertTrue($result);
     }
 
+    public function testIncrementHitCount(): void
+    {
+        $project = new Project();
+        $project->setUrl('https://5d.com/test-project');
+        $project->setHits(10);
+
+        $this->projectRepository->incrementHitCount($project);
+
+        $this->assertEquals(11, $project->getHits());
+    }
+
 
 }

@@ -84,7 +84,7 @@ class ProjectRepositoryDoctrineAdapter extends EntityRepository implements Commo
 
             $entity->$setter($value);
 
-            if($persist === true){
+            if ($persist === true) {
                 $this->getEntityManager()->persist($entity);
                 $this->getEntityManager()->flush();
             }
@@ -93,5 +93,15 @@ class ProjectRepositoryDoctrineAdapter extends EntityRepository implements Commo
         } catch (Exception $exception) {
             return $exception;
         }
+    }
+
+    /**
+     * @param Project $project
+     * @return void
+     */
+    public function incrementHitCount(Project $project): void
+    {
+        $project->incrementHits();
+        $this->save($project);
     }
 }
