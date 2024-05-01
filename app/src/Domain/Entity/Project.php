@@ -89,12 +89,17 @@ class Project
 
     public function addStatistic(ProjectStatistic $statistic): void
     {
-        $this->statistics->add($statistic);
+        if (!$this->statistics->contains($statistic)) {
+            $this->statistics->add($statistic);
+            $statistic->setProject($this);
+        }
     }
 
     public function removeStatistic(ProjectStatistic $statistic): void
     {
-        $this->statistics->remove($statistic);
+        if ($this->statistics->removeElement($statistic)) {
+            $statistic->setProject(null);
+        }
     }
 
     /**
@@ -103,16 +108,43 @@ class Project
      */
     public function setStatistics(array $statistics): self
     {
-        foreach ($statistics as $key => $value) {
-            $statistic = new ProjectStatistic($key, $value);
+        // Remove existing statistics that are not in the updated array
+        foreach ($this->statistics as $existingStatistic) {
+            /** @var ProjectStatistic $existingStatistic */
+            if (!in_array($existingStatistic->getName(), array_keys($statistics))) {
+                $this->removeStatistic($existingStatistic);
+            }
+        }
 
-            if (!$this->statistics->contains($statistic)) {
+        // Update or add new statistics
+        foreach ($statistics as $name => $value) {
+            $statistic = $this->findStatisticByName($name);
+
+            if ($statistic === null) {
+                $statistic = new ProjectStatistic($name, $value);
                 $this->addStatistic($statistic);
-                $statistic->setProject($this);
+            } else {
+                $statistic->setValue($value);
             }
         }
 
         return $this;
+    }
+
+    /**
+     * @param string $key
+     * @return ProjectStatistic|null
+     */
+    private function findStatisticByName(string $key): ?ProjectStatistic
+    {
+        foreach ($this->statistics as $statistic) {
+            /** @var ProjectStatistic $statistic */
+            if ($statistic->getName() === $key) {
+                return $statistic;
+            }
+        }
+
+        return null;
     }
 
 
