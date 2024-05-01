@@ -82,7 +82,6 @@ class GalleryScraperCommand extends Command
                 //Projects list grid target
                 $grid = $crawler->filter('#grid > div:first-child')->first();
 
-
                 //Transform the html to data, remove the array_merge for a page -> items structure instead
                 $scrapedProjects = array_merge($scrapedProjects, $this->projectTransformer->transform($grid));
             }
