@@ -26,6 +26,7 @@ class ProjectViewController extends AbstractController
         $projects = $this->projectService->findAll();
 
         return $this->render('project/list.html.twig', [
+            'title' => sprintf("List of %d projects", count($projects)),
             'projects' => $projects,
         ]);
     }
@@ -38,9 +39,15 @@ class ProjectViewController extends AbstractController
     {
         $project = $this->projectService->findProjectById($projectId);
 
+        $QR = $this->projectService->generateQR($project->getUrl());
+
+        //Hit count++
+        $this->projectService->increaseHitCount($project);
+
         return $this->render('project/detail.html.twig', [
+            'title' => $project->getTitle(),
             'project' => $project,
-            'QR' => '' //TODO QR
+            'QR' => $QR
         ]);
     }
 }

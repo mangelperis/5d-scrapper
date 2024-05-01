@@ -11,6 +11,7 @@
     "doctrine/doctrine-bundle": "^2.11",
     "doctrine/doctrine-migrations-bundle": "^3.3",
     "doctrine/orm": "^3.1",
+    "endroid/qr-code": "^5.0",
     "symfony/console": "6.4.*",
     "symfony/dom-crawler": "6.4.*",
     "symfony/dotenv": "6.4.*",
