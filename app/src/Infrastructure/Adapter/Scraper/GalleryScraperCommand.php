@@ -60,7 +60,7 @@ class GalleryScraperCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        echo  "Processing ...\n";
+        echo "Processing ...\n";
         $start_time = microtime(true);
 
         try {
