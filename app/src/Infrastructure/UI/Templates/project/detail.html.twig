@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>{{ project.title }}</h1>
+    <br/>
+    <p>URL: <a href="{{ project.url }}"> {{ project.url }}</a></p>
+    <p>QR: <a href="{{ project.url }}"> <img alt="QR CODE" src="{{ QR }}"></a></p>
+    <p>User: {{ project.user }}</p>
+    <p>Hits: {{ project.hits }}</p>
+
+    <h2>Statistics</h2>
+    <ul>
+        {% for statistic in project.statistics %}
+            <li>{{ statistic.name }}: {{ statistic.value }}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
