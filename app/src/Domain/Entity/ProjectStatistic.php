@@ -6,15 +6,16 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'project_statistics')]
-class ProjectStatistic
+#[ORM\UniqueConstraint(name: 'unique_key_per_project', columns: ['project_id', 'name'])]
+class ProjectStatistic implements ProjectItemsInterface
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     #[ORM\Column(type: 'integer')]
     private $id;
 
     #[ORM\Column(type: 'string', length: 255)]
-    private string $key;
+    private string $name;
 
     #[ORM\Column(type: 'string', length: 255)]
     private string $value;
@@ -23,19 +24,29 @@ class ProjectStatistic
     #[ORM\JoinColumn(nullable: false)]
     private ?Project $project = null;
 
+    /**
+     * @param string $key
+     * @param string $value
+     */
+    public function __construct(string $key, string $value)
+    {
+        $this->name = $key;
+        $this->value = $value;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getKey(): string
+    public function getName(): string
     {
-        return $this->key;
+        return $this->name;
     }
 
-    public function setKey(string $key): self
+    public function setName(string $name): self
     {
-        $this->key = $key;
+        $this->name = $name;
         return $this;
     }
 

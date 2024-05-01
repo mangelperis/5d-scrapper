@@ -8,10 +8,11 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'projects')]
+#[ORM\UniqueConstraint(name: 'url', columns: ['url'])]
 class Project
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
     #[ORM\Column(type: 'integer')]
     private int $id;
 
@@ -19,7 +20,10 @@ class Project
     private string $title;
 
     #[ORM\Column(type: 'string', length: 255)]
-    private string $qrImage;
+    private string $url;
+
+    #[ORM\Column(type: 'string', length: 255)]
+    private string $user;
 
     #[ORM\Column(type: 'integer')]
     private int $hits = 0;
@@ -48,20 +52,25 @@ class Project
         return $this;
     }
 
-    public function getQrImage(): string
+    public function getUrl(): string
     {
-        return $this->qrImage;
+        return $this->url;
     }
 
-    public function setQrImage(string $qrImage): self
+    public function setUrl(string $url): self
     {
-        $this->qrImage = $qrImage;
+        $this->url = $url;
         return $this;
     }
 
     public function getHits(): int
     {
         return $this->hits;
+    }
+
+    public function setHits(int $hits): void
+    {
+        $this->hits = $hits;
     }
 
     public function incrementHits(): self
@@ -78,22 +87,43 @@ class Project
         return $this->statistics;
     }
 
-    public function addStatistic(ProjectStatistic $statistic): self
+    public function addStatistic(ProjectStatistic $statistic): void
     {
-        if (!$this->statistics->contains($statistic)) {
-            $this->statistics[] = $statistic;
-            $statistic->setProject($this);
+        $this->statistics->add($statistic);
+    }
+
+    public function removeStatistic(ProjectStatistic $statistic): void
+    {
+        $this->statistics->remove($statistic);
+    }
+
+    /**
+     * @param array $statistics
+     * @return $this
+     */
+    public function setStatistics(array $statistics): self
+    {
+        foreach ($statistics as $key => $value) {
+            $statistic = new ProjectStatistic($key, $value);
+
+            if (!$this->statistics->contains($statistic)) {
+                $this->addStatistic($statistic);
+                $statistic->setProject($this);
+            }
         }
+
         return $this;
     }
 
-    public function removeStatistic(ProjectStatistic $statistic): self
+
+    public function getUser(): string
     {
-        if ($this->statistics->removeElement($statistic)) {
-            if ($statistic->getProject() === $this) {
-                $statistic->setProject(null);
-            }
-        }
-        return $this;
+        return $this->user;
     }
+
+    public function setUser(string $user): void
+    {
+        $this->user = $user;
+    }
+
 }
