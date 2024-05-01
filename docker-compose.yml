@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+    mariadb:
+        env_file:
+            - .env
+        container_name: mariadb
+        image: mariadb:11.1.4
+        volumes:
+            - ${PATH_TO_DB_DATA}:/var/lib/mysql:rw
+            - ./docker/mariadb/mariadb.cnf:/etc/mysql/my.cnf
+            # CUSTOM Users Script to add your users (optional)
+            #- ./docker/mariadb/config/users.sql:/docker-entrypoint-initdb.d/users.sql
+        environment:
+            - MARIADB_ROOT_PASSWORD=${ROOT_PASSWORD}
+            - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=0
+            #  - MARIADB_USER=${DB_USER}
+            #  - MARIADB_PASSWORD=${DB_PASSWORD}
+            - MARIADB_DATABASE=${DB_NAME}
+        ports:
+            - "3306:3306"
+        networks:
+            - symfony
+
+    php-fpm:
+        env_file:
+            - .env
+        container_name: php-fpm
+        #extra_hosts REQUIRED in Linux for xdebug!!
+        extra_hosts:
+            - host.docker.internal:host-gateway
+        #######
+        build:
+            dockerfile: ./docker/php-fpm/Dockerfile
+        volumes:
+            - ${PATH_TO_SYMFONY_PROJECT}:/var/www
+            - ${FPM_LOG_DIR}:/var/log/php-fpm/
+        depends_on:
+            - mariadb
+        networks:
+            - symfony
+
+    nginx:
+        env_file:
+            - .env
+        container_name: nginx
+        build:
+            context: ./docker/nginx
+        volumes:
+            - ${PATH_TO_SYMFONY_PROJECT}:/var/www
+            - ${NGINX_LOG_DIR}:/var/log/nginx
+        ports:
+            - "80:80"
+            - "443:443"
+        networks:
+            - symfony
+
+    adminer:
+        env_file:
+            - .env
+        container_name: adminer
+        image: adminer
+        ports:
+            - "8080:8080"
+        networks:
+            - symfony
+networks:
+    symfony:
