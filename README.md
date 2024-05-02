@@ -107,7 +107,9 @@ cp ./app/.env.dist ./app/.env && cp .env.dist .env
 
 `composer run` commands are provided as **shortcuts**.
 
-Use `composer run setup` to start and initialize all needed containers.
+1. Use `composer run setup` to start and initialize all needed containers.
+
+2. Use `composer run import-projects` to import projects.
 
 Available commands are:
 ```
