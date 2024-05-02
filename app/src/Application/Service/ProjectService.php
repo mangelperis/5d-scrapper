@@ -56,9 +56,10 @@ class ProjectService
                 throw new \InvalidArgumentException('Project not found.', Response::HTTP_NOT_FOUND);
             }
 
-
             //TODO Should use a DTO with the desired output values only
             return $project;
+        } catch (\InvalidArgumentException  $exception) {
+            throw new \InvalidArgumentException($exception->getMessage(), $exception->getCode());
 
         } catch (Exception $exception) {
             $this->logger->error(sprintf("[SERVICE] Get Project Detail fail: %s", $exception->getMessage()));
@@ -110,7 +111,7 @@ class ProjectService
             $this->projectRepository->incrementHitCount($project);
         } catch (Exception $exception) {
             $this->logger->error(sprintf("[SERVICE] Increase Hit fail: %s", $exception->getMessage()));
-            throw new Exception('Error increasing hit counter');
+            throw new Exception('Error increasing hit counter'.$exception->getMessage());
         }
     }
 }
