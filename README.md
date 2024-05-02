@@ -1,34 +1,88 @@
-# Docker-Symfony-Stack
+# Project scraper with Preview
 
 ## Table of Contents
 
 - [Description](#description)
+  - [Strategy](#strategy)
+    - [Structure design](#design-and-principles)
+  - [Features](#features)
+  - [Improvements](#possible-improvements)
 - [Infrastructure](#infrastructure-used)
   - [Symfony Packages](#installed-symfony-packages)
 - [Getting Started](#getting-started)
-  - [Run using composer](#run-using-composer)
+  - [Run using composer (recommended)](#run-using-composer-recommended)
   - [Run using docker](#run-using-docker)
     - [Next steps](#important)
-    - [nginx or apache](#note)
 - [How it works?](#how-it-works)
-  - [API](#api)
+  - [UI](#UI)
   - [PHPUnit Testing](#phpunit-testing)
   - [xDebug](#xdebug-debugger)
   - [Docker client host](#__client_host__-)
 - [Troubleshooting](#troubleshooting)
 
 ## Description
-With this Docker-Symfony-Stack boilerplate, it's possible to set up a local development environment in seconds.
+Symfony mini-application that imports projects from a gallery and previews them.
+
+***
+
+### Strategy
+Endpoints implementation with Controllers that call Services for the UI preview.
+The project includes a command scraper (*GalleryScraperCommand*) that reads data from a target website URL, transforms the data, and persists it in a database, following an ETL (Extract, Transform, Load) process.
+This command should be added to a `cron` to enable automated data updates.
+
+#### Design and Principles
+The project structure follows the **hexagonal architecture** of Application, Domain, and Infrastructure.
+
+Design patterns used:
+- Dependency Injection (*projectService*)
+- Entities (*Project, ProjectStatistic*)
+- Repository (*ProjectRepositoryDoctrineAdapter*)
+- Exception Handling (*InvalidArgumentException*)
+- Interfaces contract that allows easy implementation substitution (*CommonRepositoryInterface*)
+
+Design principles used:
+- Single Responsibility principle (SRP)
+- Dependency Inversion (DI)
+- DRY
+
+### Features
+The following key features are implemented
+#### QR image in the Detail view
+* ![projectDetail.png](projectDetail.png)
+
+#### Project
+* The project is prepared to manage that a Project can have (1:N) multiple Statistics (or other Items), because of the ArrayCollection implementation.
+* The scraper command accepts args to *sort* the results by type, and *limit* the number of pages to read.
+  By default, it will sort by `trendy` and read `3` pages with no args.
+
+#### Good practices
+* Manual logging and Exceptions catching during the service and controller process.
+* Log critical exceptions, like code errors, and return generic response messages like 'Something went wrong' to the UI client to not provide details.
+
+#### Logic
+* Persist data only if doesn't exist, update fields if it does while executing the scraper command. This allows us to update the statistics like hits, likes, and comments...
+* Adapters and Ports. Change of stack easily by only adapting the Infrastructure layer.
+  * Exception are the *DoctrineRepositories* for MySQL databases, they were injected directly so the extended EntityService queries like `find` could be used.
+  * These repositories implement the interfaces for their expected operations: save, update, delete...
+
+#### Performance
+* It takes an average of 30 seconds to process a target gallery page with the command.
+
+### Possible improvements
+* Create a proper ResponseHandler for Error Responses.
+* Some **constants** defined should be retrieved from the cache system, database, or the `.env`, so they would be easier to set on demand.
+* Add individual DTO objects for the Entities and their transformation, so they can be merged with any desired resourced response.
+* The URL field was added as a UNIQUE key in the projects table. There is a 6-character string within the project URL that should be used for these purposes such as finding a project by its UNIQUE URL (not the full one).
+
+***
 
 ## Infrastructure used
-* Symfony 7
+* Symfony 6.4
 * Docker
   * PHP 8.3 (w/ opcache & [xDebug](#xdebug-debugger))
-  * [Nginx / Apache](#note)
+  * Nginx
   * MariaDB 11.1.4
-  * Redis 7.2.4 (optional)
   * Adminer (optional)
-  * MailCatcher (optional)
 
 ### Installed Symfony Packages
 * **phpunit/phpunit**: testing framework for PHP
@@ -38,6 +92,8 @@ With this Docker-Symfony-Stack boilerplate, it's possible to set up a local deve
 * **symfony/validator**: tools for validating data according to predefined rules.
 * **symfony/maker-bundle**: facilitates rapid development by automating the creation of boilerplate code.
 * **phpstan/phpstan**: analysis tool for PHP code, to detect and fix issues,
+* **symfony/twig-bundle**: integrates the Twig templating engine into Symfony applications.
+* **endroid/qr-code**: PHP library for generating QR codes with various options and formats.
 
 ***
 
@@ -47,7 +103,7 @@ Copy or rename the `.env.dist` files (for docker and symfony) to an environment 
 cp ./app/.env.dist ./app/.env && cp .env.dist .env
 ```
 
-### Run using composer
+### Run using composer (recommended)
 
 `composer run` commands are provided as **shortcuts**.
 
@@ -63,7 +119,8 @@ composer run [
     logs              --- Show container sys logs (php-fpm, nginx, and MariaDB).
     cache-clear       --- Execute Symfony clear cache command.
     stan              --- Execute PHPStan analyse command.
-    test              --- Execute PHPUnit test cases.    
+    test              --- Execute PHPUnit test cases.
+    import-projects   --- Execute Project Gallery Scrap from 5d. Args: sort and limit (type and pages)
 ]
 ```
 
@@ -73,8 +130,8 @@ A folder named `var` will be created in the project root folder upon the first r
 Alternatively to the use of `composer`, you can directly build & run the app by using the following docker commands:
 
 * Use `docker compose` to start your environment.
-  * Add the _param_ `-d` if you wish to run the process in the background.
-  * Add the _param_ `--build` the **first time** to build the images.
+  * Add the _param_ `up -d` if you wish to run the process in the background.
+  * Add the _param_ `up --build` the **first time** to build the images.
   * Add the _keyword_ `down` to stop the containers.
 ```
 # Build & up. From the project's root folder exec
@@ -82,20 +139,16 @@ docker compose up -d --build
 ```
 
 #### IMPORTANT
-After booting the container, run `composer install` from outside or inside the container.
+After booting the container, run `composer install` from inside the container (this will avoid writing logs errors).
 ```
 docker exec -t php-fpm composer install
 ```
-Then run the database migrations to create the mysql structure for both **dev** and **test** environments.
+Then run the database migrations to create the MySQL structure for the  **dev** environment.
 ```
 docker exec -t php-fpm php bin/console doctrine:migrations:migrate --env=dev --no-interaction
 ```
 
-```
-docker exec -t php-fpm php bin/console doctrine:database:create --env=test --no-interaction
-docker exec -t php-fpm php bin/console doctrine:migrations:migrate --env=test --no-interaction
-```
-
+##### OPTIONAL
 After booting the container, you can use this command to enter inside it and execute commands (the container's name is defined in the _**docker-compose.yml**_ file):
 ```
 docker exec -it $container_name bash
@@ -109,46 +162,30 @@ There's an alias being created upon the build process, and it will allow you to 
 sf debug:router
 ```
 
-#### Note
-Configurations to serve the project with either **NGINX** or **APACHE** servers are provided. By default, NGINX settings will be used.
-If you wish to use **APACHE** instead, **rename** the proper _**docker-compose.apache.yml**_ file or specify the target file while using the `up` command.
-```
-docker compose -f docker-compose.apache.yml up --build
-```
-***
-
 ## How it works?
-You have up to 5 containers running depending on whether you choose to use nginx or apache: php-fpm + nginx or php-apache, mariadb, redis, and optionally, adminer.
+You have up to 4 containers running depending on whether you choose to use: php-fpm + nginx, MariaDB, and optionally, adminer.
 Check the running containers by using the command: ``docker ps``
 - [Symfony Web-App welcome page](http://localhost:80)
 - [Adminer [optional] (simple database manager)](http://localhost:8080)
-- [MailCatcher [optional] (catches and displays sent mail)](http://localhost:1080)
 
-#### API
-Use Postman or another CLI to perform actions on each endpoint.
-A [postman collection]() is provided with the project with the source data endpoint and the destination one.
+#### UI
+Use a web browser to preview the project lists and details.
 
-The list of available endpoints can be shown by executing (target **php-fpm** or **php-apache** container):
+The list of available endpoints can be shown by executing (target **php-fpm**):
 ```
 docker exec php-fpm php bin/console debug:router
 ```
-Provided endpoints are (Example):
+Provided endpoints are:
 ```
-GET|HEAD  api/user/all                  List all users
-POST      api/user/create               Create a new user   
-PUT       api/user/{user}               Update user by ID
-DELETE    api/user/{user}               (Soft) Delete a user by ID
-GET|HEAD  api/user/{user}               Show user data by ID
-GET|HEAD  api/user/{user}/workentry     List all user WorkEntries by UserID
-
-POST      api/workentry/create          Create a new WorkEntry
-PUT       api/workentry/{workentry}     Update WorkEntry by ID
-DELETE    api/workentry/{workentry}     Delete WorkEntry by ID
-GET|HEAD  api/workentry/{workentry}     Show WorkEntry Data by ID
+  Name                      Method    Path                         
+ ------------------------- --------  ----------------------------- 
+   
+  app_project_list               GET     /projects                   
+  app_project_detail        GET      /project/{projectId}    
 ```
 
 #### PHPUnit Testing
-Additionally, run all the tests available using (target **php-fpm** or **php-apache** container):
+Additionally, run all the tests available using (target **php-fpm**):
 ```
 docker exec php-fpm ./vendor/bin/phpunit --verbose
 ```

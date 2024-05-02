@@ -87,6 +87,9 @@
     ],
     "test": [
       "docker exec -t php-fpm vendor/bin/phpunit --verbose"
+    ],
+    "import-projects": [
+      "docker exec -t php-fpm sf app:gallery-scraper"
     ]
   },
   "conflict": {
